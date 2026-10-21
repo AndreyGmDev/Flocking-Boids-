@@ -170,12 +170,14 @@ MonoBehaviour:
   aliWeight: 1
   cohWeight: 0.9
   boundsRadius: 18
+  boundsWeight: 30
   lookAhead: 2.5
+  obstacleWeight: 2
   obstacleMask:
     serializedVersion: 2
     m_Bits: 128
   obstaclePrefab: {fileID: 2468445302958006635, guid: 3844c82fc9f2d8941be0cefa553b682e, type: 3}
-  obstacleCount: 10
+  obstacleCount: 20
   obstacleMaxSize: 4
   obstacleSpawnRadius: 18
 --- !u!1001 &123887131

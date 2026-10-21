@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
 public class Boid : MonoBehaviour
 {
@@ -29,5 +27,11 @@ public class Boid : MonoBehaviour
 
         if (Velocity.sqrMagnitude > 0.01f)
             transform.rotation = Quaternion.LookRotation(Velocity);
+    }
+
+    private void OnDrawGizmosSelected()
+    {
+        Gizmos.color = Color.cyan;
+        Gizmos.DrawWireSphere(transform.position, perception);
     }
 }

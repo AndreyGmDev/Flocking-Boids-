@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using UnityEditor;
 using UnityEngine;
 
 public sealed class FlockManager : MonoBehaviour
@@ -13,7 +12,10 @@ public sealed class FlockManager : MonoBehaviour
     [SerializeField] private float cohWeight = 0.9f;
 
     [SerializeField] private float boundsRadius = 18f;
+    [SerializeField, Min(0)] private float boundsWeight = 1f;
+
     [SerializeField] private float lookAhead = 2.5f;
+    [SerializeField, Min(0)] private float obstacleWeight = 2f;
     [SerializeField] private LayerMask obstacleMask;
 
     [SerializeField] private GameObject obstaclePrefab;
@@ -21,76 +23,105 @@ public sealed class FlockManager : MonoBehaviour
     [SerializeField] private int obstacleMaxSize = 10;
     [SerializeField] private float obstacleSpawnRadius = 8f;
 
-    private Vector3 center => transform.position;
+    private Vector3 Center => transform.position;
 
     public readonly List<Boid> boids = new();
 
     private void Awake()
     {
-        // Instancia n° boids em uma determinada área.
+        SpawnBoids();
+        SpawnObstacles();
+    }
+
+    private void SpawnBoids()
+    {
+        if (boidPrefab == null)
+            return;
+
         for (int i = 0; i < boidCount; i++)
         {
-            Vector3 pos = transform.position 
-                + Random.insideUnitSphere * boidSpawnRadius;
+            Vector3 pos = Center + Random.insideUnitSphere * boidSpawnRadius;
+            Quaternion rotation = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
 
-            Boid boid = Instantiate(boidPrefab, pos, Quaternion.Euler(0f, Random.value * 360f, 0f));
+            Boid boid = Instantiate(boidPrefab, pos, rotation);
 
             boid.Flock = this;
             boids.Add(boid);
         }
+    }
 
-        // Instancia n° obstacles em uma determinada área.
+    private void SpawnObstacles()
+    {
+        if (obstaclePrefab == null)
+            return;
+
         for (int i = 0; i < obstacleCount; i++)
         {
-            Vector3 pos = transform.position
-                + Random.insideUnitSphere * obstacleSpawnRadius;
+            Vector3 pos = Center + Random.insideUnitSphere * obstacleSpawnRadius;
+            Quaternion rotation = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
 
-            GameObject obstacle = Instantiate(obstaclePrefab, pos, Quaternion.Euler(0f, Random.value * 360f, 0f));
-            obstacle.transform.localScale = Vector3.one * Random.Range(1, obstacleMaxSize);
+            GameObject obstacle = Instantiate(obstaclePrefab, pos, rotation);
+
+            float scale = Random.Range(1f, Mathf.Max(1, obstacleMaxSize));
+            obstacle.transform.localScale = Vector3.one * scale;
         }
     }
 
     public Vector3 ComputeForce(Boid boid, Collider[] near, int count)
     {
-        Vector3 sep = Vector3.zero;
-        Vector3 ali = Vector3.zero;
-        Vector3 coh = Vector3.zero;
+        Vector3 separation = Vector3.zero;
+        Vector3 alignment = Vector3.zero;
+        Vector3 cohesionCenter = Vector3.zero;
         int seen = 0;
 
-        foreach (Collider col in near)
+        for (int i = 0; i < count; i++)
         {
+            if (count >= near.Length)
+                break;
+
+            Collider col = near[i];
             if (col?.attachedRigidbody == null || col.gameObject == boid.gameObject)
                 continue;
 
             Vector3 toMe = boid.transform.position
                          - col.transform.position;
 
-            sep += toMe / (toMe.sqrMagnitude + 0.0001f);
-            ali += col.attachedRigidbody.linearVelocity;
-            coh += col.transform.position;
+            if (toMe.sqrMagnitude > 0.0001f)
+                separation += toMe / toMe.sqrMagnitude;
+
+            alignment += col.attachedRigidbody.linearVelocity;
+            cohesionCenter += col.transform.position;
             seen++;
         }
 
-        if (seen == 0) 
-            return Vector3.zero;
+        Vector3 totalForce = StayInBounds(boid) * boundsWeight;
+        totalForce += AvoidObstacle(boid) * obstacleWeight;
 
-        ali /= seen;
-        coh = coh / seen - boid.transform.position;
+        if (seen > 0)
+        {
+            alignment /= seen;
+            cohesionCenter = cohesionCenter / seen - boid.transform.position;
+   
+            Vector3 separationForce = separation * boid.MaxSpeed;
+            Vector3 alignmentForce = alignment.normalized * boid.MaxSpeed;
+            Vector3 cohesionForce = cohesionCenter.normalized * boid.MaxSpeed;
+            
+            if (separationForce.sqrMagnitude > 0.0001)
+                totalForce += (separationForce - boid.Velocity) * sepWeight;
+            
+            if (alignmentForce.sqrMagnitude > 0.0001)
+                totalForce += (alignmentForce - boid.Velocity) * aliWeight;
 
-        Vector3 force = StayInBounds(boid) * 30f + AvoidObstacle(boid) * 2f;
+            if (cohesionForce.sqrMagnitude > 0.0001)
+                totalForce += (cohesionForce - boid.Velocity) * cohWeight;
+        }
 
-        return force 
-             + (sep.normalized * boid.MaxSpeed - boid.Velocity) * sepWeight
-             + (ali.normalized * boid.MaxSpeed - boid.Velocity) * aliWeight
-             + (coh.normalized * boid.MaxSpeed - boid.Velocity) * cohWeight;
+        return Vector3.ClampMagnitude(totalForce, boid.MaxForce);
     }
 
-    // campos: center, boundsRadius = 18f,
-    //         lookAhead = 2.5f, obstacleMask
-    // volta para o centro quando sai do raio
     public Vector3 StayInBounds(Boid boid)
     {
-        Vector3 toCenter = center
+        Vector3 toCenter = Center
             - boid.transform.position;
 
         if (toCenter.sqrMagnitude < boundsRadius * boundsRadius)
@@ -104,19 +135,14 @@ public sealed class FlockManager : MonoBehaviour
     public Vector3 AvoidObstacle(Boid boid)
     {
         Vector3 dir = boid.Velocity.normalized;
-        if (!Physics.SphereCast(boid.transform.position,
-                0.4f, dir, out RaycastHit hit,
-                lookAhead, obstacleMask))
+
+        if (!Physics.SphereCast(boid.transform.position, 0.4f, dir, out RaycastHit hit, lookAhead, obstacleMask))
             return Vector3.zero;
 
         Vector3 away = Vector3.Reflect(dir, hit.normal);
         return (away - boid.Velocity).normalized
              * boid.MaxForce;
     }
-    // dentro de ComputeForce, antes de retornar:
-    //  force += StayInBounds(boid)
-    //        + AvoidObstacle(boid) * 2f;
-
 
     private void OnDrawGizmos()
     {

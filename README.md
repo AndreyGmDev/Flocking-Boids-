@@ -1,6 +1,16 @@
 # Flocking-Boids-
 
-PARTE B - EXPERIMENTO DOCUMENTADO
+INTEGRANTES:
+Andrey Bispo Fernandes
+Esther Souza Fernandes
+
+INSTRUCOES PARA ABRIR A CENA PRINCIPAL
+Assets\Scenes\Normal
+Assets\Scenes\Predador
+
+TABELA PARA OS PARAMETROS FINAIS: PESOS DAS TRES REGRAS, RAIOS, MAXSPEED E MAXFORCE
+
+PARTE B - EXPERIMENTO DOCUMENTADO (RESPOSTAS)
 
 1.Peso da separacao = 0: o que sobra do bando?
 R: Os boids perdem o seu raio de distanciamento e comecam a grudar umas nas outras, formando aglomerados de boids que seguem juntos na mesma direcao (um tanto semelhante ao conceito de atomo de Dalton).

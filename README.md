@@ -12,4 +12,4 @@ R: Diferente de antes que os boids caiam e andavam em sua maioria para as mesmas
 R: o raio de percepcao funciona como um circulo em volta do boid que permite que o mesmo veja seus iguais ao seu redor. Quanto maior for a percepcao (se colocarmos 5 por exemplo), maior e a distancia que mantem dos outros boids (uma observacao e que quando surgem, por precisarem manter mais distancia, geram uma sensacao de explosao). Porem, quanto menor a percepcao (colocando 0.5, por exemplo), a percepcao de um boid sobre os outros boids diminui, como se nao os visse la. Se o boid nao consegue ver outros boids, ele nao sente a necessidade de manter a distancia, e consequentemente, se mantem no mesmo lugar.
 
 4.Predador: adicione uma esfera que persegue o bando e um comportamento de fuga com peso alto no ComputeForce. Descreva o efeito causado no grupo.
-R:
+R: a prioridade principal dos boids para de ser manter distancia uns dos outros e se torna fugir do predador. Enqunto o predador tem como objetivo perseguir os outros boids.

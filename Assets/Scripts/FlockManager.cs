@@ -18,6 +18,7 @@ public sealed class FlockManager : MonoBehaviour
     [SerializeField, Min(0)] private float obstacleWeight = 2f;
     [SerializeField] private LayerMask obstacleMask;
 
+    [Header("Obstacle Spawn Infos")]
     [SerializeField] private GameObject obstaclePrefab;
     [SerializeField] private int obstacleCount = 10;
     [SerializeField] private int obstacleMaxSize = 10;
